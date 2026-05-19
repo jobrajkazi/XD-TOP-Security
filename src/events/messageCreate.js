@@ -1,8 +1,9 @@
-const { Events, EmbedBuilder } = require('discord.js');
-const { QuickDB } = require('quick.db');
+import { Events, EmbedBuilder } from 'discord.js';
+import { QuickDB } from 'quick.db';
+
 const db = new QuickDB();
 
-module.exports = {
+export default {
     name: Events.MessageCreate,
     async execute(message) {
         if (message.author.bot || !message.guild) return;
@@ -20,12 +21,9 @@ module.exports = {
         let reason = null;
         let threat = "Medium";
 
-        // Swear Detection
         if (badwords.some(word => content.includes(word))) {
             reason = "Toxic / Offensive Language";
-        }
-        // Basic Spam Detection
-        else if (message.channel.messages.cache.filter(m => m.author.id === userId).size >= 6) {
+        } else if (message.channel.messages.cache.filter(m => m.author.id === userId).size >= 6) {
             reason = "Spam Messages";
             threat = "High";
         }
@@ -40,7 +38,6 @@ async function punishUser(message, reason, threat) {
     const member = message.member;
     if (!member) return;
 
-    // Delete message
     message.delete().catch(() => {});
 
     let action = "Warning";
@@ -63,7 +60,7 @@ async function punishUser(message, reason, threat) {
 
     message.author.send({ embeds: [dmEmbed] }).catch(() => {});
 
-    // Alert to Server Owner
+    // Alert to Owner
     const owner = await message.client.users.fetch(message.guild.ownerId).catch(() => null);
     if (owner) {
         const alert = new EmbedBuilder()
