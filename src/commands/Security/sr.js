@@ -1,7 +1,6 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
-import { QuickDB } from 'quick.db';
 
-const db = new QuickDB();
+const badwordsDB = new Map(); // In-memory storage
 
 export default {
     data: new SlashCommandBuilder()
@@ -9,7 +8,7 @@ export default {
         .setDescription('Add swear words (Owner Only)')
         .addStringOption(option => 
             option.setName('words')
-                .setDescription('Words separated by comma (e.g. bad,badword2)')
+                .setDescription('Words separated by comma')
                 .setRequired(true))
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
@@ -19,15 +18,19 @@ export default {
         }
 
         const words = interaction.options.getString('words').toLowerCase().split(',');
-        let badwords = await db.get(`badwords.${interaction.guild.id}`) || [];
-        
+        const guildId = interaction.guild.id;
+
+        let badwords = badwordsDB.get(guildId) || [];
         badwords = [...new Set([...badwords, ...words.map(w => w.trim())])];
 
-        await db.set(`badwords.${interaction.guild.id}`, badwords);
+        badwordsDB.set(guildId, badwords);
 
         await interaction.reply({ 
-            content: `✅ Added **${words.length}** bad words successfully!`, 
+            content: `✅ Successfully added **${words.length}** bad words!`, 
             ephemeral: true 
         });
     }
 };
+
+// Export for use in messageCreate
+export { badwordsDB };
