@@ -1,50 +1,60 @@
-import { Events, EmbedBuilder } from 'discord.js';
-import { whitelistDB } from '../commands/Security/whitelist.js';
-
-const messageCache = new Map(); // Temporary cache
-
-// Cache messages when sent
-export function cacheMessage(message) {
-    if (message.author.bot || !message.guild) return;
-    const key = `${message.guild.id}-${message.channel.id}`;
-    if (!messageCache.has(key)) messageCache.set(key, new Map());
-    messageCache.get(key).set(message.id, message);
-}
+import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 
 export default {
-    name: Events.MessageDelete,
-    async execute(message) {
-        if (!message.guild) return;
+    data: new SlashCommandBuilder()
+        .setName('delete')
+        .setDescription('Delete messages of a user (Bot Owner Only)')
+        .addUserOption(opt => opt.setName('user').setDescription('Target user').setRequired(true))
+        .addStringOption(opt =>
+            opt.setName('all_channels')
+                .setDescription('Delete from ALL channels?')
+                .addChoices(
+                    { name: 'Yes (Everywhere)', value: 'yes' },
+                    { name: 'No (Only this channel)', value: 'no' }
+                )
+                .setRequired(true))
+        .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
-        const deleter = message.author; // Sometimes null on bulk delete
-        const guildId = message.guild.id;
-        const key = `${guildId}-${deleter?.id}`;
-
-        // If whitelisted → allow delete
-        if (deleter && whitelistDB.has(key)) return;
-
-        // Try to restore the message
-        if (message.content || message.attachments.size > 0) {
-            const restoredEmbed = new EmbedBuilder()
-                .setAuthor({ name: `${message.author?.tag || 'Unknown'} (Deleted by non-whitelisted)`, iconURL: message.author?.displayAvatarURL() })
-                .setDescription(message.content || "*No text content*")
-                .setColor("Red")
-                .setFooter({ text: "🛡️ Auto Restored by Error Exe Security" })
-                .setTimestamp();
-
-            if (message.attachments.size > 0) {
-                restoredEmbed.setImage(message.attachments.first().url);
-            }
-
-            message.channel.send({ embeds: [restoredEmbed] }).catch(() => {});
+    async execute(interaction) {
+        // Bot Owner Check (from Railway env)
+        const BOT_OWNER_ID = process.env.BOT_OWNER_ID;
+        if (!BOT_OWNER_ID || !BOT_OWNER_ID.split(',').map(id => id.trim()).includes(interaction.user.id)) {
+            return interaction.reply({ 
+                content: "❌ **Only the Bot Owner** can use this command!", 
+                ephemeral: true 
+            });
         }
 
-        // Punish the deleter if we know who it is
-        if (deleter && !whitelistDB.has(key)) {
-            const member = await message.guild.members.fetch(deleter.id).catch(() => null);
-            if (member) {
-                await member.timeout(5 * 60 * 1000, "Unauthorized Delete (Anti-Nuke)").catch(() => {});
+        const target = interaction.options.getUser('user');
+        const allChannels = interaction.options.getString('all_channels') === 'yes';
+
+        await interaction.reply({ content: `🧹 Deleting messages from **${target.tag}**...`, ephemeral: true });
+
+        if (allChannels) {
+            const channels = interaction.guild.channels.cache.filter(ch => ch.isTextBased());
+            for (const channel of channels.values()) {
+                await deleteUserMessages(channel, target.id);
             }
+        } else {
+            await deleteUserMessages(interaction.channel, target.id);
         }
+
+        const embed = new EmbedBuilder()
+            .setTitle("✅ Deletion Completed")
+            .setDescription(`Messages from **${target.tag}** have been deleted.`)
+            .setColor("Green");
+
+        await interaction.editReply({ content: null, embeds: [embed] });
     }
 };
+
+async function deleteUserMessages(channel, userId) {
+    if (!channel) return;
+    try {
+        const messages = await channel.messages.fetch({ limit: 100 });
+        const userMsgs = messages.filter(m => m.author.id === userId);
+        if (userMsgs.size > 0) {
+            await channel.bulkDelete(userMsgs, true).catch(() => {});
+        }
+    } catch {}
+}
