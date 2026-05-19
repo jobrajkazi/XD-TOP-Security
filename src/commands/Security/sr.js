@@ -1,6 +1,8 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
 
-export const badwordsDB = new Map(); // In-memory storage
+const BOT_OWNERS = ["858482656252657674", "1409273535238508585", "1503475813767577721"];
+
+const badwordsDB = new Map(); // In-memory storage
 
 export default {
     data: new SlashCommandBuilder()
@@ -13,13 +15,8 @@ export default {
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
     async execute(interaction) {
-        // Read from Railway Environment Variable
-        const BOT_OWNER_ID = process.env.BOT_OWNER_ID;
-        if (!BOT_OWNER_ID || !BOT_OWNER_ID.split(',').map(id => id.trim()).includes(interaction.user.id)) {
-            return interaction.reply({ 
-                content: "❌ **Only the Bot Owner** can use this!", 
-                ephemeral: true 
-            });
+        if (!BOT_OWNERS.includes(interaction.user.id)) {
+            return interaction.reply({ content: "❌ Only Bot Owner can use this!", ephemeral: true });
         }
 
         const words = interaction.options.getString('words').toLowerCase().split(',');
@@ -35,3 +32,6 @@ export default {
         });
     }
 };
+
+// Export for use in messageCreate
+export { badwordsDB };
