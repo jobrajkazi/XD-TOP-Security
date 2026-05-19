@@ -1,11 +1,13 @@
 import { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 
-const whitelistDB = new Map(); // In-memory storage
+const BOT_OWNERS = ["858482656252657674", "1409273535238508585"];
+
+export const whitelistDB = new Map(); // In-memory storage
 
 export default {
     data: new SlashCommandBuilder()
         .setName('whitelist')
-        .setDescription('Whitelist a user (Owner Only)')
+        .setDescription('Whitelist a user (Bot Owner Only)')
         .addUserOption(option => option.setName('user').setDescription('User to whitelist').setRequired(true))
         .addStringOption(option => 
             option.setName('level')
@@ -20,8 +22,11 @@ export default {
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
     async execute(interaction) {
-        if (interaction.user.id !== interaction.guild.ownerId) {
-            return interaction.reply({ content: "❌ Only Server Owner can use this!", ephemeral: true });
+        if (!BOT_OWNERS.includes(interaction.user.id)) {
+            return interaction.reply({ 
+                content: "❌ **Only the Bot Owner** can use this command!", 
+                ephemeral: true 
+            });
         }
 
         const target = interaction.options.getUser('user');
@@ -33,11 +38,8 @@ export default {
         const embed = new EmbedBuilder()
             .setTitle("✅ User Whitelisted")
             .setColor("Gold")
-            .setDescription(`**${target.tag}** has been whitelisted with level: **${level}**`);
+            .setDescription(`**${target.tag}** (${target.id})\n**Level:** ${level}`);
 
         await interaction.reply({ embeds: [embed] });
     }
 };
-
-// Export for use in other files
-export { whitelistDB };
