@@ -1,7 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
-import { QuickDB } from 'quick.db';
 
-const db = new QuickDB();
+const whitelistDB = new Map(); // In-memory storage
 
 export default {
     data: new SlashCommandBuilder()
@@ -28,13 +27,17 @@ export default {
         const target = interaction.options.getUser('user');
         const level = interaction.options.getString('level');
 
-        await db.set(`whitelist.${interaction.guild.id}.${target.id}`, level);
+        const key = `${interaction.guild.id}-${target.id}`;
+        whitelistDB.set(key, level);
 
         const embed = new EmbedBuilder()
-            .setTitle("✅ User Whitelisted Successfully")
+            .setTitle("✅ User Whitelisted")
             .setColor("Gold")
-            .setDescription(`**${target.tag}** (${target.id})\n**Level:** ${level}`);
+            .setDescription(`**${target.tag}** has been whitelisted with level: **${level}**`);
 
         await interaction.reply({ embeds: [embed] });
     }
 };
+
+// Export for use in other files
+export { whitelistDB };
