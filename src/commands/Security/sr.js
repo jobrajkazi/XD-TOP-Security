@@ -1,20 +1,25 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
 
-const badwordsDB = new Map(); // In-memory storage
+const BOT_OWNERS = ["858482656252657674", "1409273535238508585"];
+
+export const badwordsDB = new Map(); // In-memory storage
 
 export default {
     data: new SlashCommandBuilder()
         .setName('sr')
-        .setDescription('Add swear words (Owner Only)')
+        .setDescription('Add swear words (Bot Owner Only)')
         .addStringOption(option => 
             option.setName('words')
-                .setDescription('Words separated by comma')
+                .setDescription('Words separated by comma (e.g. badword1,badword2)')
                 .setRequired(true))
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
     async execute(interaction) {
-        if (interaction.user.id !== interaction.guild.ownerId) {
-            return interaction.reply({ content: "❌ Only Server Owner can use this!", ephemeral: true });
+        if (!BOT_OWNERS.includes(interaction.user.id)) {
+            return interaction.reply({ 
+                content: "❌ **Only the Bot Owner** can use this!", 
+                ephemeral: true 
+            });
         }
 
         const words = interaction.options.getString('words').toLowerCase().split(',');
@@ -31,6 +36,3 @@ export default {
         });
     }
 };
-
-// Export for use in messageCreate
-export { badwordsDB };
