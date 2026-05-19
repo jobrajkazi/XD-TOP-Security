@@ -5,82 +5,80 @@ const db = new QuickDB();
 module.exports = {
     name: Events.MessageCreate,
     async execute(message) {
-        if (message.author.bot) return;
+        if (message.author.bot || !message.guild) return;
 
         const guildId = message.guild.id;
         const userId = message.author.id;
 
-        // Check Whitelist
-        const whitelistLevel = await db.get(`whitelist.${guildId}.${userId}`);
-        if (whitelistLevel) return; // Whitelisted users are free
+        // Skip whitelisted users
+        const whitelist = await db.get(`whitelist.${guildId}.${userId}`);
+        if (whitelist) return;
 
-        // Get bad words
+        const content = message.content.toLowerCase().trim();
         const badwords = await db.get(`badwords.${guildId}`) || [];
 
-        const content = message.content.toLowerCase();
+        let reason = null;
+        let threat = "Medium";
 
-        // === Swear Detection ===
+        // Swear Detection
         if (badwords.some(word => content.includes(word))) {
-            await punishUser(message, "Toxic / Offensive Language", "Medium");
-            return;
+            reason = "Toxic / Offensive Language";
+        }
+        // Basic Spam Detection
+        else if (message.channel.messages.cache.filter(m => m.author.id === userId).size >= 6) {
+            reason = "Spam Messages";
+            threat = "High";
         }
 
-        // === Spam Detection (Simple) ===
-        if (message.channel.messages.cache.filter(m => m.author.id === userId).size > 5) {
-            await punishUser(message, "Spam Messages", "High");
-            return;
+        if (reason) {
+            await punishUser(message, reason, threat);
         }
-
-        // You can add more detections here (links, images, etc.)
     }
 };
 
-async function punishUser(message, reason, level) {
+async function punishUser(message, reason, threat) {
     const member = message.member;
-    const guild = message.guild;
+    if (!member) return;
+
+    // Delete message
+    message.delete().catch(() => {});
 
     let action = "Warning";
 
-    if (level === "High") {
-        action = "Timeout";
-        await member.timeout(10 * 60 * 1000, reason).catch(() => {}); // 10 minutes
-    } else if (level === "Critical") {
-        action = "Kick";
-        await member.kick(reason).catch(() => {});
+    if (threat === "High") {
+        action = "Timeout (10m)";
+        await member.timeout(10 * 60 * 1000, reason).catch(() => {});
     }
 
-    // Delete the bad message
-    message.delete().catch(() => {});
-
-    // === DM to User ===
+    // DM to User
     const dmEmbed = new EmbedBuilder()
         .setTitle("⚠️ ERROR EXE OFFICIAL — AUTOMATED SECURITY WARNING")
         .setColor("Red")
         .setDescription(`Hello ${message.author},`)
         .addFields(
             { name: "📌 DETECTED ACTIVITY:", value: `• ${reason}` },
-            { name: "━━━━━━━━━━━━━━", value: "Our system continuously monitors server activity..." }
+            { name: "━━━━━━━━━━━━━━", value: "Our system continuously monitors server activity to maintain a safe environment." }
         )
-        .setFooter({ text: "— ERROR EXE OFFICIAL SECURITY SYSTEM" });
+        .setFooter({ text: "— ERROR EXE OFFICIAL SECURITY SYSTEM 🛡️" });
 
     message.author.send({ embeds: [dmEmbed] }).catch(() => {});
 
-    // === Alert to Bot Owner ===
-    const owner = await guild.client.users.fetch(guild.ownerId).catch(() => null);
+    // Alert to Server Owner
+    const owner = await message.client.users.fetch(message.guild.ownerId).catch(() => null);
     if (owner) {
-        const alertEmbed = new EmbedBuilder()
+        const alert = new EmbedBuilder()
             .setTitle("🚨 ERROR EXE OFFICIAL — SECURITY ALERT")
             .setColor("DarkRed")
             .addFields(
-                { name: "👤 User", value: `${message.author.tag} (${message.author.id})` },
+                { name: "👤 User", value: `${message.author.tag}` },
                 { name: "🆔 User ID", value: message.author.id },
                 { name: "📍 Channel", value: `<#${message.channel.id}>` },
                 { name: "🕒 Time", value: `<t:${Math.floor(Date.now()/1000)}>` },
                 { name: "📌 DETECTED REASON", value: reason },
-                { name: "📊 Threat Level", value: level },
+                { name: "📊 Threat Level", value: threat },
                 { name: "🤖 System Action Taken", value: action }
             );
 
-        owner.send({ embeds: [alertEmbed] }).catch(() => {});
+        owner.send({ embeds: [alert] }).catch(() => {});
     }
 }
