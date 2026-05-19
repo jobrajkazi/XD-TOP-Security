@@ -1,117 +1,86 @@
+const { Events, EmbedBuilder } = require('discord.js');
+const { QuickDB } = require('quick.db');
+const db = new QuickDB();
 
+module.exports = {
+    name: Events.MessageCreate,
+    async execute(message) {
+        if (message.author.bot) return;
 
+        const guildId = message.guild.id;
+        const userId = message.author.id;
 
+        // Check Whitelist
+        const whitelistLevel = await db.get(`whitelist.${guildId}.${userId}`);
+        if (whitelistLevel) return; // Whitelisted users are free
 
+        // Get bad words
+        const badwords = await db.get(`badwords.${guildId}`) || [];
 
-import { Events } from 'discord.js';
-import { logger } from '../utils/logger.js';
-import { getLevelingConfig, getUserLevelData } from '../services/leveling.js';
-import { addXp } from '../services/xpSystem.js';
-import { checkRateLimit } from '../utils/rateLimiter.js';
+        const content = message.content.toLowerCase();
 
-const MESSAGE_XP_RATE_LIMIT_ATTEMPTS = 12;
-const MESSAGE_XP_RATE_LIMIT_WINDOW_MS = 10000;
+        // === Swear Detection ===
+        if (badwords.some(word => content.includes(word))) {
+            await punishUser(message, "Toxic / Offensive Language", "Medium");
+            return;
+        }
 
-export default {
-  name: Events.MessageCreate,
-  async execute(message, client) {
-    try {
-      
-      if (message.author.bot || !message.guild) return;
+        // === Spam Detection (Simple) ===
+        if (message.channel.messages.cache.filter(m => m.author.id === userId).size > 5) {
+            await punishUser(message, "Spam Messages", "High");
+            return;
+        }
 
-      await handleLeveling(message, client);
-    } catch (error) {
-      logger.error('Error in messageCreate event:', error);
+        // You can add more detections here (links, images, etc.)
     }
-  }
 };
 
+async function punishUser(message, reason, level) {
+    const member = message.member;
+    const guild = message.guild;
 
+    let action = "Warning";
 
-
-
-
-
-
-async function handleLeveling(message, client) {
-  try {
-    const rateLimitKey = `xp-event:${message.guild.id}:${message.author.id}`;
-    const canProcess = await checkRateLimit(rateLimitKey, MESSAGE_XP_RATE_LIMIT_ATTEMPTS, MESSAGE_XP_RATE_LIMIT_WINDOW_MS);
-    if (!canProcess) {
-      return;
+    if (level === "High") {
+        action = "Timeout";
+        await member.timeout(10 * 60 * 1000, reason).catch(() => {}); // 10 minutes
+    } else if (level === "Critical") {
+        action = "Kick";
+        await member.kick(reason).catch(() => {});
     }
 
-    const levelingConfig = await getLevelingConfig(client, message.guild.id);
-    
-    if (!levelingConfig?.enabled) {
-      return;
+    // Delete the bad message
+    message.delete().catch(() => {});
+
+    // === DM to User ===
+    const dmEmbed = new EmbedBuilder()
+        .setTitle("⚠️ ERROR EXE OFFICIAL — AUTOMATED SECURITY WARNING")
+        .setColor("Red")
+        .setDescription(`Hello ${message.author},`)
+        .addFields(
+            { name: "📌 DETECTED ACTIVITY:", value: `• ${reason}` },
+            { name: "━━━━━━━━━━━━━━", value: "Our system continuously monitors server activity..." }
+        )
+        .setFooter({ text: "— ERROR EXE OFFICIAL SECURITY SYSTEM" });
+
+    message.author.send({ embeds: [dmEmbed] }).catch(() => {});
+
+    // === Alert to Bot Owner ===
+    const owner = await guild.client.users.fetch(guild.ownerId).catch(() => null);
+    if (owner) {
+        const alertEmbed = new EmbedBuilder()
+            .setTitle("🚨 ERROR EXE OFFICIAL — SECURITY ALERT")
+            .setColor("DarkRed")
+            .addFields(
+                { name: "👤 User", value: `${message.author.tag} (${message.author.id})` },
+                { name: "🆔 User ID", value: message.author.id },
+                { name: "📍 Channel", value: `<#${message.channel.id}>` },
+                { name: "🕒 Time", value: `<t:${Math.floor(Date.now()/1000)}>` },
+                { name: "📌 DETECTED REASON", value: reason },
+                { name: "📊 Threat Level", value: level },
+                { name: "🤖 System Action Taken", value: action }
+            );
+
+        owner.send({ embeds: [alertEmbed] }).catch(() => {});
     }
-
-    
-    if (levelingConfig.ignoredChannels?.includes(message.channel.id)) {
-      return;
-    }
-
-    
-    if (levelingConfig.ignoredRoles?.length > 0) {
-      const member = await message.guild.members.fetch(message.author.id).catch(() => {
-        return null;
-      });
-      if (member && member.roles.cache.some(role => levelingConfig.ignoredRoles.includes(role.id))) {
-        return;
-      }
-    }
-
-    
-    if (levelingConfig.blacklistedUsers?.includes(message.author.id)) {
-      return;
-    }
-
-    
-    if (!message.content || message.content.trim().length === 0) {
-      return;
-    }
-
-    const userData = await getUserLevelData(client, message.guild.id, message.author.id);
-    
-    
-    const cooldownTime = levelingConfig.xpCooldown || 60;
-    const now = Date.now();
-    const timeSinceLastMessage = now - (userData.lastMessage || 0);
-    
-    
-    if (timeSinceLastMessage < cooldownTime * 1000) {
-      return;
-    }
-
-    
-    const minXP = levelingConfig.xpRange?.min || levelingConfig.xpPerMessage?.min || 15;
-    const maxXP = levelingConfig.xpRange?.max || levelingConfig.xpPerMessage?.max || 25;
-
-    
-    const safeMinXP = Math.max(1, minXP);
-    const safeMaxXP = Math.max(safeMinXP, maxXP);
-
-    
-    const xpToGive = Math.floor(Math.random() * (safeMaxXP - safeMinXP + 1)) + safeMinXP;
-
-    
-    let finalXP = xpToGive;
-    if (levelingConfig.xpMultiplier && levelingConfig.xpMultiplier > 1) {
-      finalXP = Math.floor(finalXP * levelingConfig.xpMultiplier);
-    }
-
-    
-    const result = await addXp(client, message.guild, message.member, finalXP);
-    
-    if (result.success && result.leveledUp) {
-      logger.info(
-        `${message.author.tag} leveled up to level ${result.level} in ${message.guild.name}`
-      );
-    }
-  } catch (error) {
-    logger.error('Error handling leveling for message:', error);
-  }
 }
-
-
