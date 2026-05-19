@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
-import { BOT_OWNER_ID } from '../../config.js';
+
+const BOT_OWNERS = ["858482656252657674", "1409273535238508585"];
 
 export default {
     data: new SlashCommandBuilder()
@@ -17,7 +18,7 @@ export default {
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
     async execute(interaction) {
-        if (interaction.user.id !== BOT_OWNER_ID) {
+        if (!BOT_OWNERS.includes(interaction.user.id)) {
             return interaction.reply({
                 content: "❌ **Only the Bot Owner** can use this powerful command!",
                 ephemeral: true
