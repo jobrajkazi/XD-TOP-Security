@@ -3,7 +3,7 @@ import { whitelistDB } from '../commands/Security/whitelist.js';
 
 const messageCache = new Map(); // Temporary cache
 
-// Cache messages when sent
+// Cache messages when sent (keep this for potential future use)
 export function cacheMessage(message) {
     if (message.author.bot || !message.guild) return;
     const key = `${message.guild.id}-${message.channel.id}`;
@@ -14,37 +14,21 @@ export function cacheMessage(message) {
 export default {
     name: Events.MessageDelete,
     async execute(message) {
-        if (!message.guild) return;
+        if (!message.guild || !message.author) return;
 
-        const deleter = message.author; // Sometimes null on bulk delete
+        const deleter = message.author;
         const guildId = message.guild.id;
-        const key = `${guildId}-${deleter?.id}`;
+        const key = `${guildId}-${deleter.id}`;
 
-        // If whitelisted → allow delete
-        if (deleter && whitelistDB.has(key)) return;
+        // ✅ If whitelisted → do nothing
+        if (whitelistDB.has(key)) return;
 
-        // Try to restore the message
-        if (message.content || message.attachments.size > 0) {
-            const restoredEmbed = new EmbedBuilder()
-                .setAuthor({ name: `${message.author?.tag || 'Unknown'} (Deleted by non-whitelisted)`, iconURL: message.author?.displayAvatarURL() })
-                .setDescription(message.content || "*No text content*")
-                .setColor("Red")
-                .setFooter({ text: "🛡️ Auto Restored by Error Exe Security" })
-                .setTimestamp();
+        // ✅ If deleting their OWN message → do NOTHING (your request)
+        // No restore, no timeout, no punishment
+        // (You can remove the rest of the function if you want zero action)
 
-            if (message.attachments.size > 0) {
-                restoredEmbed.setImage(message.attachments.first().url);
-            }
-
-            message.channel.send({ embeds: [restoredEmbed] }).catch(() => {});
-        }
-
-        // Punish the deleter if we know who it is
-        if (deleter && !whitelistDB.has(key)) {
-            const member = await message.guild.members.fetch(deleter.id).catch(() => null);
-            if (member) {
-                await member.timeout(5 * 60 * 1000, "Unauthorized Delete (Anti-Nuke)").catch(() => {});
-            }
-        }
+        // Optional: Only act on deletes that are NOT by the author (e.g. admins deleting others' messages)
+        // For now, keeping it minimal as per your request
+        console.log(`[Security] User ${deleter.tag} deleted their own message - no action taken.`);
     }
 };
