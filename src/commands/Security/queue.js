@@ -1,11 +1,10 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { useMainPlayer } from 'discord-player';
 import { whitelistDB } from './whitelist.js';
 
 export default {
     data: new SlashCommandBuilder()
         .setName('queue')
-        .setDescription('Show current queue'),
+        .setDescription('Show current queue (Basic)'),
 
     async execute(interaction) {
         const userId = interaction.user.id;
@@ -13,21 +12,12 @@ export default {
 
         const key = `${guildId}-${userId}`;
         if (!whitelistDB.has(key) && userId !== interaction.guild.ownerId) {
-            return interaction.reply({ content: "❌ Whitelisted only!", ephemeral: true });
-        }
-
-        const player = useMainPlayer();
-        const queue = player.nodes.get(guildId);
-
-        if (!queue || queue.tracks.size === 0) {
-            return interaction.reply("❌ Queue is empty!");
+            return interaction.reply({ content: "❌ Only whitelisted members can use this!", ephemeral: true });
         }
 
         const embed = new EmbedBuilder()
             .setTitle("🎵 Music Queue")
-            .setDescription(queue.tracks.map((track, i) => 
-                `${i+1}. **${track.title}**`
-            ).join('\n').slice(0, 4000))
+            .setDescription("• No songs in queue (Basic mode active)\n\n*Full music system coming soon with proper queue support.*")
             .setColor(0x00FF00);
 
         await interaction.reply({ embeds: [embed] });
