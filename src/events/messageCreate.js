@@ -10,8 +10,9 @@ export default {
 
         const guildId = message.guild.id;
         const userId = message.author.id;
-
         const key = `${guildId}-${userId}`;
+
+        // Skip whitelisted users
         if (whitelistDB.has(key)) return;
 
         const content = message.content.toLowerCase().trim();
@@ -57,30 +58,28 @@ async function punishUser(message, reason, threat) {
         )
         .addFields({
             name: "━━━━━━━━━━━━━━",
-            value: "Our system continuously monitors server activity to maintain a safe, clean, and friendly environment for every member inside the community.\n\nBecause of your recent activity, your account has been automatically flagged by the protection system.\n\n⚠️ This warning is officially recorded inside the moderation logs."
+            value: "Our system continuously monitors server activity...\n\nBecause of your recent activity, your account has been automatically flagged."
         })
         .addFields({
             name: "Please understand:",
-            value: "Repeated violations may result in the following actions without additional warning:\n• Temporary Timeout\n• Permanent Mute\n• Kick From Server\n• Permanent Ban\n• Blacklist From Future Access"
+            value: "Repeated violations may result in:\n• Temporary Timeout\n• Kick\n• Permanent Ban"
         })
-        .setFooter({ text: "— ERROR EXE OFFICIAL SECURITY SYSTEM 🛡️ Automated Moderation & Protection" });
+        .setFooter({ text: "— ERROR EXE OFFICIAL SECURITY SYSTEM 🛡️" });
 
     message.author.send({ embeds: [dmEmbed] }).catch(() => {});
 
-    // Alert to Owner
+    // Owner Alert
     const owner = await message.client.users.fetch(message.guild.ownerId).catch(() => null);
     if (owner) {
         const alert = new EmbedBuilder()
             .setTitle("🚨 ERROR EXE OFFICIAL — SECURITY ALERT")
             .setColor("DarkRed")
             .addFields(
-                { name: "👤 User", value: `${message.author.tag}` },
+                { name: "👤 User", value: message.author.tag },
                 { name: "🆔 User ID", value: message.author.id },
                 { name: "📍 Channel", value: `<#${message.channel.id}>` },
-                { name: "🕒 Time", value: `<t:${Math.floor(Date.now()/1000)}>` },
-                { name: "📌 DETECTED REASON", value: reason },
-                { name: "📊 Threat Level", value: threat },
-                { name: "🤖 System Action Taken", value: action }
+                { name: "📌 Reason", value: reason },
+                { name: "Action", value: action }
             );
         owner.send({ embeds: [alert] }).catch(() => {});
     }
