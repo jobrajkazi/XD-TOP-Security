@@ -4,16 +4,16 @@ import { whitelistDB } from './whitelist.js';
 export default {
     data: new SlashCommandBuilder()
         .setName('text')
-        .setDescription('Send a message in any channel (Full Access Whitelisted only)')
+        .setDescription('Send a professional message (Full Access only)')
         .addChannelOption(option =>
             option.setName('channel')
-                .setDescription('Select the channel to send message')
+                .setDescription('Select the channel')
                 .setRequired(true)
-                .addChannelTypes(0, 5) // Text & Announcement channels
+                .addChannelTypes(0, 5)
         )
         .addStringOption(option =>
-            option.setName('message')
-                .setDescription('The message you want to send')
+            option.setName('text')
+                .setDescription('Write your message here')
                 .setRequired(true)
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
@@ -22,45 +22,46 @@ export default {
         const userId = interaction.user.id;
         const guildId = interaction.guild.id;
 
-        // Check if user is Full Access Whitelisted or Server Owner
+        // Permission Check (Only Full Access + Owner)
         const key = `${guildId}-${userId}`;
         const whitelistLevel = whitelistDB.get(key);
-
-        const isFullAccess = whitelistLevel === 'full';
+        const isFullAccess = whitelistLevel === 'full' || whitelistLevel === 'botaccess';
         const isOwner = userId === interaction.guild.ownerId;
 
         if (!isFullAccess && !isOwner) {
             return interaction.reply({
-                content: "❌ Only **Full Access Whitelisted Members** or **Server Owner** can use this command!",
+                content: "❌ Only **Full Access Whitelisted Members** or **Server Owner** can use this!",
                 ephemeral: true
             });
         }
 
         const channel = interaction.options.getChannel('channel');
-        const messageText = interaction.options.getString('message');
-
-        if (!channel) {
-            return interaction.reply({ content: "❌ Invalid channel!", ephemeral: true });
-        }
+        const userText = interaction.options.getString('text');
 
         try {
-            await channel.send(messageText);
+            // Auto Professional Formatting
+            const embed = new EmbedBuilder()
+                .setTitle("📜 OFFICIAL ANNOUNCEMENT")
+                .setDescription(userText.replace(/\\n/g, '\n'))
+                .setColor(0x1F1F1F) // Dark professional color
+                .setTimestamp()
+                .setFooter({ 
+                    text: `XD TOP Security • ${interaction.user.tag}`,
+                    iconURL: interaction.guild.iconURL() || null
+                });
 
-            const successEmbed = new EmbedBuilder()
-                .setTitle("✅ Message Sent Successfully")
-                .setColor("Green")
-                .setDescription(`**Message sent in ${channel}**`)
-                .addFields(
-                    { name: "📍 Channel", value: `${channel}`, inline: true },
-                    { name: "👤 Sent By", value: `${interaction.user.tag}`, inline: true }
-                )
-                .setTimestamp();
+            await channel.send({ embeds: [embed] });
 
-            await interaction.reply({ embeds: [successEmbed], ephemeral: true });
+            // Success message to user
+            await interaction.reply({
+                content: `✅ Professional message sent successfully in ${channel}`,
+                ephemeral: true
+            });
 
         } catch (error) {
+            console.error(error);
             await interaction.reply({
-                content: `❌ Failed to send message. Make sure I have permission in ${channel}.`,
+                content: "❌ Failed to send message. Make sure the bot has permission in that channel.",
                 ephemeral: true
             });
         }
