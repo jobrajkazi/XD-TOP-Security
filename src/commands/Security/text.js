@@ -4,7 +4,7 @@ import { whitelistDB } from './whitelist.js';
 export default {
     data: new SlashCommandBuilder()
         .setName('text')
-        .setDescription('Send clean professional message with left line')
+        .setDescription('Send compact professional message')
         .addChannelOption(option =>
             option.setName('channel')
                 .setDescription('Select the channel')
@@ -18,7 +18,7 @@ export default {
         )
         .addStringOption(option =>
             option.setName('text')
-                .setDescription('Main message content')
+                .setDescription('Message content')
                 .setRequired(true)
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
@@ -33,31 +33,22 @@ export default {
         const isOwner = userId === interaction.guild.ownerId;
 
         if (!isFullAccess && !isOwner) {
-            return interaction.reply({ content: "❌ Only Full Access Whitelisted or Owner can use this!", ephemeral: true });
+            return interaction.reply({ content: "❌ Only Full Access or Owner!", ephemeral: true });
         }
 
         const channel = interaction.options.getChannel('channel');
         const title = interaction.options.getString('title');
-        let userText = interaction.options.getString('text');
+        let text = interaction.options.getString('text').replace(/\\n/g, '\n');
 
-        // Improve formatting
-        userText = userText.replace(/\\n/g, '\n');
+        const embed = new EmbedBuilder()
+            .setColor(0x00FF00)
+            .setDescription(text);
 
-        try {
-            const embed = new EmbedBuilder()
-                .setColor(0x00FF00)
-                .setDescription(userText);
-
-            if (title && title.trim() !== '') {
-                embed.setTitle(title);
-            }
-
-            await channel.send({ embeds: [embed] });
-
-            await interaction.reply({ content: `✅ Sent successfully in ${channel}`, ephemeral: true });
-
-        } catch (error) {
-            await interaction.reply({ content: "❌ Failed to send message.", ephemeral: true });
+        if (title && title.trim() !== '') {
+            embed.setTitle(title);
         }
+
+        await channel.send({ embeds: [embed] });
+        await interaction.reply({ content: `✅ Sent in ${channel}`, ephemeral: true });
     }
 };
