@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 
 const whitelistDB = new Map();
-const PASSWORD = "Mithil123321";
+const PASSWORD = "01855109727As";
 
 export default {
     data: new SlashCommandBuilder()
@@ -10,7 +10,7 @@ export default {
         .addUserOption(option => option.setName('user').setDescription('User to whitelist').setRequired(true))
         .addStringOption(option => 
             option.setName('password')
-                .setDescription('Enter password (Mithil123321)')
+                .setDescription('Enter password (Here)')
                 .setRequired(true))
         .addStringOption(option => 
             option.setName('level')
