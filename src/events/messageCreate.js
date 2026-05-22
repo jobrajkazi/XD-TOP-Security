@@ -1,6 +1,7 @@
 import { Events, EmbedBuilder } from 'discord.js';
-import { whitelistDB } from '../commands/Security/whitelist.js';
-import { badwordsDB } from '../commands/Security/sr.js';
+
+const whitelistDB = new Map();
+const badwordsDB = new Map();
 
 export default {
     name: Events.MessageCreate,
@@ -9,21 +10,21 @@ export default {
 
         const guildId = message.guild.id;
         const userId = message.author.id;
-        const key = `${guildId}-${userId}`;
 
-        // Skip punishment for whitelisted users
+        const key = `${guildId}-${userId}`;
         if (whitelistDB.has(key)) return;
 
         const content = message.content.toLowerCase().trim();
         const badwords = badwordsDB.get(guildId) || [];
 
         let reason = null;
-        let threat = "High";
+        let threat = "Medium";
 
         if (badwords.some(word => content.includes(word))) {
             reason = "Toxic / Offensive Language";
-        } else if (message.channel.messages.cache.filter(m => m.author.id === userId).size >= 5) {
+        } else if (message.channel.messages.cache.filter(m => m.author.id === userId).size >= 6) {
             reason = "Spam Messages";
+            threat = "High";
         }
 
         if (reason) {
@@ -36,9 +37,8 @@ async function punishUser(message, reason, threat) {
     const member = message.member;
     if (!member) return;
 
-    message.delete().catch(() => {});
+    await message.delete().catch(() => {});
 
-    // Hard Punishment
     try {
         await member.timeout(30 * 60 * 1000, `Zero Tolerance: ${reason}`);
     } catch (e) {
@@ -49,7 +49,7 @@ async function punishUser(message, reason, threat) {
 
     // === DM to Punished User ===
     const dmEmbed = new EmbedBuilder()
-        .setTitle("⚠️ ERROR EXE OFFICIAL — AUTOMATED SECURITY WARNING")
+        .setTitle("⚠️ XD TOP — AUTOMATED SECURITY WARNING")
         .setColor("Red")
         .setDescription(`Hello ${message.author},`)
         .addFields(
@@ -61,7 +61,7 @@ async function punishUser(message, reason, threat) {
             name: "━━━━━━━━━━━━━━",
             value: "**You have been punished for violating server rules.**\nOur system has **ZERO TOLERANCE**."
         })
-        .setFooter({ text: "— ERROR EXE OFFICIAL SECURITY SYSTEM" });
+        .setFooter({ text: "— XD TOP SECURITY SYSTEM" });
 
     message.author.send({ embeds: [dmEmbed] }).catch(() => {});
 
@@ -74,7 +74,7 @@ async function punishUser(message, reason, threat) {
             
             if (staffUser) {
                 const staffEmbed = new EmbedBuilder()
-                    .setTitle("🚨 ERROR EXE OFFICIAL — STAFF ALERT")
+                    .setTitle("🚨 XD TOP — STAFF ALERT")
                     .setColor("Orange")
                     .addFields(
                         { name: "👤 Punished User", value: `${message.author.tag} (${message.author.id})` },
@@ -83,7 +83,7 @@ async function punishUser(message, reason, threat) {
                         { name: "🤖 Action Taken", value: "Timeout (30 Minutes)" },
                         { name: "🕒 Time", value: `<t:${Math.floor(Date.now()/1000)}>` }
                     )
-                    .setFooter({ text: "Zero Tolerance Mode • ERROR EXE OFFICIAL" });
+                    .setFooter({ text: "Zero Tolerance Mode • XD TOP" });
 
                 staffUser.send({ embeds: [staffEmbed] }).catch(() => {});
             }
