@@ -4,7 +4,7 @@ import { whitelistDB } from './whitelist.js';
 export default {
     data: new SlashCommandBuilder()
         .setName('text')
-        .setDescription('Send professional message with left line')
+        .setDescription('Send clean professional message with left line')
         .addChannelOption(option =>
             option.setName('channel')
                 .setDescription('Select the channel')
@@ -46,15 +46,10 @@ export default {
 
         try {
             const embed = new EmbedBuilder()
-                .setColor(0x00FF00) // Bright green left accent line
-                .setDescription(userText)
-                .setTimestamp()
-                .setFooter({ 
-                    text: "XD TOP Security",
-                    iconURL: interaction.guild.iconURL() || null
-                });
+                .setColor(0x00FF00) // Bright green left line
+                .setDescription(userText);
 
-            // Only add title if user provided one
+            // Add title only if provided
             if (title && title.trim() !== '') {
                 embed.setTitle(title);
             }
@@ -69,7 +64,7 @@ export default {
         } catch (error) {
             console.error(error);
             await interaction.reply({
-                content: "❌ Failed to send message. Check bot permissions in that channel.",
+                content: "❌ Failed to send message. Check bot permissions.",
                 ephemeral: true
             });
         }
