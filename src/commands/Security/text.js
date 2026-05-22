@@ -4,7 +4,7 @@ import { whitelistDB } from './whitelist.js';
 export default {
     data: new SlashCommandBuilder()
         .setName('text')
-        .setDescription('Send a professional message with left accent line')
+        .setDescription('Send professional message with left line')
         .addChannelOption(option =>
             option.setName('channel')
                 .setDescription('Select the channel')
@@ -12,8 +12,13 @@ export default {
                 .addChannelTypes(0, 5)
         )
         .addStringOption(option =>
+            option.setName('title')
+                .setDescription('Title (Optional - Leave empty for no title)')
+                .setRequired(false)
+        )
+        .addStringOption(option =>
             option.setName('text')
-                .setDescription('Write your message here (use \\n for new lines)')
+                .setDescription('Main message content (use \\n for new lines)')
                 .setRequired(true)
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
@@ -36,18 +41,23 @@ export default {
         }
 
         const channel = interaction.options.getChannel('channel');
+        const title = interaction.options.getString('title');
         const userText = interaction.options.getString('text').replace(/\\n/g, '\n');
 
         try {
             const embed = new EmbedBuilder()
-                .setTitle("📜 OFFICIAL ANNOUNCEMENT")
+                .setColor(0x00FF00) // Bright green left accent line
                 .setDescription(userText)
-                .setColor(0x00FF00)        // ← Bright Green Left Line (like your image)
                 .setTimestamp()
                 .setFooter({ 
-                    text: `XD TOP Security • ${interaction.user.tag}`,
+                    text: "XD TOP Security",
                     iconURL: interaction.guild.iconURL() || null
                 });
+
+            // Only add title if user provided one
+            if (title && title.trim() !== '') {
+                embed.setTitle(title);
+            }
 
             await channel.send({ embeds: [embed] });
 
@@ -59,7 +69,7 @@ export default {
         } catch (error) {
             console.error(error);
             await interaction.reply({
-                content: "❌ Failed to send. Check bot permissions in that channel.",
+                content: "❌ Failed to send message. Check bot permissions in that channel.",
                 ephemeral: true
             });
         }
