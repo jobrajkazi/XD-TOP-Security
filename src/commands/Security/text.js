@@ -13,12 +13,12 @@ export default {
         )
         .addStringOption(option =>
             option.setName('title')
-                .setDescription('Title (Optional - Leave empty for no title)')
+                .setDescription('Title (Optional)')
                 .setRequired(false)
         )
         .addStringOption(option =>
             option.setName('text')
-                .setDescription('Main message content (use \\n for new lines)')
+                .setDescription('Main message content')
                 .setRequired(true)
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
@@ -27,46 +27,37 @@ export default {
         const userId = interaction.user.id;
         const guildId = interaction.guild.id;
 
-        // Permission Check
         const key = `${guildId}-${userId}`;
         const whitelistLevel = whitelistDB.get(key);
         const isFullAccess = whitelistLevel === 'full' || whitelistLevel === 'botaccess';
         const isOwner = userId === interaction.guild.ownerId;
 
         if (!isFullAccess && !isOwner) {
-            return interaction.reply({
-                content: "❌ Only **Full Access Whitelisted Members** or **Server Owner** can use this!",
-                ephemeral: true
-            });
+            return interaction.reply({ content: "❌ Only Full Access Whitelisted or Owner can use this!", ephemeral: true });
         }
 
         const channel = interaction.options.getChannel('channel');
         const title = interaction.options.getString('title');
-        const userText = interaction.options.getString('text').replace(/\\n/g, '\n');
+        let userText = interaction.options.getString('text');
+
+        // Improve formatting
+        userText = userText.replace(/\\n/g, '\n');
 
         try {
             const embed = new EmbedBuilder()
-                .setColor(0x00FF00) // Bright green left line
+                .setColor(0x00FF00)
                 .setDescription(userText);
 
-            // Add title only if provided
             if (title && title.trim() !== '') {
                 embed.setTitle(title);
             }
 
             await channel.send({ embeds: [embed] });
 
-            await interaction.reply({
-                content: `✅ Message sent successfully in ${channel}`,
-                ephemeral: true
-            });
+            await interaction.reply({ content: `✅ Sent successfully in ${channel}`, ephemeral: true });
 
         } catch (error) {
-            console.error(error);
-            await interaction.reply({
-                content: "❌ Failed to send message. Check bot permissions.",
-                ephemeral: true
-            });
+            await interaction.reply({ content: "❌ Failed to send message.", ephemeral: true });
         }
     }
 };
