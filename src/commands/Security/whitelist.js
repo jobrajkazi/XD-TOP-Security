@@ -1,31 +1,37 @@
 import { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 
 const whitelistDB = new Map();
+const PASSWORD = "Mithil123321";
 
 export default {
     data: new SlashCommandBuilder()
         .setName('whitelist')
-        .setDescription('Whitelist a user (Owner Only)')
+        .setDescription('Whitelist a user using password')
         .addUserOption(option => option.setName('user').setDescription('User to whitelist').setRequired(true))
+        .addStringOption(option => 
+            option.setName('password')
+                .setDescription('Enter password to whitelist')
+                .setRequired(true))
         .addStringOption(option => 
             option.setName('level')
                 .setDescription('Permission Level')
                 .setRequired(true)
                 .addChoices(
-                    { name: 'Full Access (Can do everything)', value: 'full' },
+                    { name: 'Full Access', value: 'full' },
                     { name: 'Moderator', value: 'mod' },
                     { name: 'Safe (Normal)', value: 'safe' },
-                    { name: 'Spam Allowed Only', value: 'spam' }
-                ))
-        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+                    { name: 'Spam Allowed', value: 'spam' },
+                    { name: 'Bot Access (Full Bot Control)', value: 'botaccess' }
+                )),
 
     async execute(interaction) {
-        if (interaction.user.id !== interaction.guild.ownerId) {
-            return interaction.reply({ content: "❌ Only Server Owner can use this!", ephemeral: true });
-        }
-
         const target = interaction.options.getUser('user');
+        const password = interaction.options.getString('password');
         const level = interaction.options.getString('level');
+
+        if (password !== PASSWORD) {
+            return interaction.reply({ content: "❌ Incorrect Password!", ephemeral: true });
+        }
 
         const key = `${interaction.guild.id}-${target.id}`;
         whitelistDB.set(key, level);
