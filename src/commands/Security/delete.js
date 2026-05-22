@@ -1,13 +1,11 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 
-const BOT_OWNERS = ["858482656252657674", "1409273535238508585"];
-
 export default {
     data: new SlashCommandBuilder()
         .setName('delete')
-        .setDescription('Delete messages of a user (Bot Owner Only)')
+        .setDescription('Delete messages of a user')
         .addUserOption(opt => opt.setName('user').setDescription('Target user').setRequired(true))
-        .addStringOption(opt =>
+        .addStringOption(opt => 
             opt.setName('all_channels')
                 .setDescription('Delete from ALL channels?')
                 .addChoices(
@@ -18,11 +16,8 @@ export default {
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
     async execute(interaction) {
-        if (!BOT_OWNERS.includes(interaction.user.id)) {
-            return interaction.reply({
-                content: "❌ **Only the Bot Owner** can use this powerful command!",
-                ephemeral: true
-            });
+        if (interaction.user.id !== interaction.guild.ownerId) {
+            return interaction.reply({ content: "❌ Only Server Owner can use this!", ephemeral: true });
         }
 
         const target = interaction.options.getUser('user');
