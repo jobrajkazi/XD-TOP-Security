@@ -1,7 +1,6 @@
 import { Events, EmbedBuilder } from 'discord.js';
-
-const whitelistDB = new Map();
-const badwordsDB = new Map();
+import { whitelistDB } from '../commands/Security/whitelist.js';
+import { badwordsDB } from '../commands/Security/sr.js';
 
 export default {
     name: Events.MessageCreate,
@@ -19,13 +18,15 @@ export default {
         const badwords = badwordsDB.get(guildId) || [];
 
         let reason = null;
-        let threat = "Medium";
+        let threat = "High"; // Default high for zero tolerance
 
+        // Strong Swear Detection
         if (badwords.some(word => content.includes(word))) {
             reason = "Toxic / Offensive Language";
-        } else if (message.channel.messages.cache.filter(m => m.author.id === userId).size >= 6) {
+        } 
+        // Strong Spam Detection
+        else if (message.channel.messages.cache.filter(m => m.author.id === userId).size >= 5) {
             reason = "Spam Messages";
-            threat = "High";
         }
 
         if (reason) {
@@ -38,51 +39,54 @@ async function punishUser(message, reason, threat) {
     const member = message.member;
     if (!member) return;
 
+    // Delete Message
     message.delete().catch(() => {});
 
-    let action = "Warning";
-    if (threat === "High") {
-        action = "Timeout (10 Minutes)";
-        await member.timeout(10 * 60 * 1000, reason).catch(() => {});
+    // Hard Punishment - 0 Mercy
+    try {
+        await member.timeout(30 * 60 * 1000, `Zero Tolerance: ${reason}`); // 30 minutes timeout
+    } catch (e) {
+        try {
+            await member.kick(`Zero Tolerance: ${reason}`);
+        } catch {}
     }
 
-    // Long DM to User
+    // === LONG DM TO USER (Merciless) ===
     const dmEmbed = new EmbedBuilder()
         .setTitle("⚠️ ERROR EXE OFFICIAL — AUTOMATED SECURITY WARNING")
         .setColor("Red")
         .setDescription(`Hello ${message.author},`)
         .addFields(
             { name: "━━━━━━━━━━━━━━", value: "📌 DETECTED ACTIVITY:" },
-            { name: "• Toxic / Offensive Language", value: reason.includes("Toxic") ? "✅ Detected" : "❌ Not Detected", inline: true },
-            { name: "• Spam Messages", value: reason.includes("Spam") ? "✅ Detected" : "❌ Not Detected", inline: true }
+            { name: "• Toxic / Offensive Language", value: reason.includes("Toxic") ? "✅ Detected" : "❌", inline: true },
+            { name: "• Spam Messages", value: reason.includes("Spam") ? "✅ Detected" : "❌", inline: true }
         )
         .addFields({
             name: "━━━━━━━━━━━━━━",
-            value: "Our system continuously monitors server activity...\n\nBecause of your recent activity, your account has been automatically flagged."
+            value: "**You have been automatically punished for violating server security rules.**\n\nOur system has **ZERO TOLERANCE** for toxic behavior and spam."
         })
         .addFields({
-            name: "Please understand:",
-            value: "Repeated violations may result in:\n• Temporary Timeout\n• Kick\n• Permanent Ban"
+            name: "Action Taken:",
+            value: "• Message Deleted\n• Timeout (30 Minutes)\n• Warning Recorded"
         })
-        .setFooter({ text: "— ERROR EXE OFFICIAL SECURITY SYSTEM 🛡️" });
+        .setFooter({ text: "— ERROR EXE OFFICIAL SECURITY SYSTEM • NO MERCY MODE ENABLED 🛡️" });
 
     message.author.send({ embeds: [dmEmbed] }).catch(() => {});
 
-    // Owner Alert
+    // Alert to Owner
     const owner = await message.client.users.fetch(message.guild.ownerId).catch(() => null);
     if (owner) {
         const alert = new EmbedBuilder()
             .setTitle("🚨 ERROR EXE OFFICIAL — SECURITY ALERT")
             .setColor("DarkRed")
             .addFields(
-                { name: "👤 User", value: message.author.tag },
+                { name: "👤 User", value: `${message.author.tag}` },
                 { name: "🆔 User ID", value: message.author.id },
                 { name: "📍 Channel", value: `<#${message.channel.id}>` },
                 { name: "📌 Reason", value: reason },
-                { name: "Action", value: action }
+                { name: "Action Taken", value: "Timeout (30m) + DM Sent" }
             );
+
         owner.send({ embeds: [alert] }).catch(() => {});
     }
 };
-
-export { whitelistDB, badwordsDB };
