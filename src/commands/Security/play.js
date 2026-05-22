@@ -1,14 +1,13 @@
-import { SlashCommandBuilder } from 'discord.js';
-import { useMainPlayer } from 'discord-player';
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { whitelistDB } from './whitelist.js';
 
 export default {
     data: new SlashCommandBuilder()
         .setName('play')
-        .setDescription('Play a song')
-        .addStringOption(option => 
+        .setDescription('Play a song (Basic)')
+        .addStringOption(option =>
             option.setName('query')
-                .setDescription('Song name or link')
+                .setDescription('Song name or YouTube link')
                 .setRequired(true)
         ),
 
@@ -28,22 +27,11 @@ export default {
             return interaction.reply({ content: "❌ Join a voice channel first!", ephemeral: true });
         }
 
-        await interaction.deferReply();
+        const embed = new EmbedBuilder()
+            .setTitle("🎵 Music Command")
+            .setDescription(`**Searching for:** ${query}\n\n*Basic music system is limited.*\nUse full music system later for better experience.`)
+            .setColor(0x00FF00);
 
-        try {
-            const player = useMainPlayer();
-            const { track } = await player.play(voiceChannel, query, {
-                nodeOptions: {
-                    metadata: interaction.channel,
-                    volume: 80,
-                    leaveOnEmpty: true,
-                    leaveOnStop: true,
-                }
-            });
-
-            await interaction.editReply(`🎵 **Playing:** ${track.title}`);
-        } catch (e) {
-            await interaction.editReply("❌ Could not play this song.");
-        }
+        await interaction.reply({ embeds: [embed] });
     }
 };
