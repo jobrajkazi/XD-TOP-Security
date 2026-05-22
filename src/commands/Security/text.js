@@ -4,7 +4,7 @@ import { whitelistDB } from './whitelist.js';
 export default {
     data: new SlashCommandBuilder()
         .setName('text')
-        .setDescription('Send a professional message (Full Access only)')
+        .setDescription('Send a professional message with left accent line')
         .addChannelOption(option =>
             option.setName('channel')
                 .setDescription('Select the channel')
@@ -13,7 +13,7 @@ export default {
         )
         .addStringOption(option =>
             option.setName('text')
-                .setDescription('Write your message here')
+                .setDescription('Write your message here (use \\n for new lines)')
                 .setRequired(true)
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
@@ -22,7 +22,7 @@ export default {
         const userId = interaction.user.id;
         const guildId = interaction.guild.id;
 
-        // Permission Check (Only Full Access + Owner)
+        // Permission Check
         const key = `${guildId}-${userId}`;
         const whitelistLevel = whitelistDB.get(key);
         const isFullAccess = whitelistLevel === 'full' || whitelistLevel === 'botaccess';
@@ -36,14 +36,13 @@ export default {
         }
 
         const channel = interaction.options.getChannel('channel');
-        const userText = interaction.options.getString('text');
+        const userText = interaction.options.getString('text').replace(/\\n/g, '\n');
 
         try {
-            // Auto Professional Formatting
             const embed = new EmbedBuilder()
                 .setTitle("📜 OFFICIAL ANNOUNCEMENT")
-                .setDescription(userText.replace(/\\n/g, '\n'))
-                .setColor(0x1F1F1F) // Dark professional color
+                .setDescription(userText)
+                .setColor(0x00FF00)        // ← Bright Green Left Line (like your image)
                 .setTimestamp()
                 .setFooter({ 
                     text: `XD TOP Security • ${interaction.user.tag}`,
@@ -52,16 +51,15 @@ export default {
 
             await channel.send({ embeds: [embed] });
 
-            // Success message to user
             await interaction.reply({
-                content: `✅ Professional message sent successfully in ${channel}`,
+                content: `✅ Message sent successfully in ${channel}`,
                 ephemeral: true
             });
 
         } catch (error) {
             console.error(error);
             await interaction.reply({
-                content: "❌ Failed to send message. Make sure the bot has permission in that channel.",
+                content: "❌ Failed to send. Check bot permissions in that channel.",
                 ephemeral: true
             });
         }
