@@ -1,10 +1,10 @@
-import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, AttachmentBuilder } from 'discord.js';
 import { whitelistDB } from './whitelist.js';
 
 export default {
     data: new SlashCommandBuilder()
         .setName('text')
-        .setDescription('Send compact professional message')
+        .setDescription('Send clean Discord-like message with optional attachment')
         .addChannelOption(option =>
             option.setName('channel')
                 .setDescription('Select the channel')
@@ -18,8 +18,13 @@ export default {
         )
         .addStringOption(option =>
             option.setName('text')
-                .setDescription('Message content')
+                .setDescription('Main message content (supports \\n for new lines)')
                 .setRequired(true)
+        )
+        .addAttachmentOption(option =>
+            option.setName('item')
+                .setDescription('Image or file to attach (any size)')
+                .setRequired(false)
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
@@ -39,16 +44,41 @@ export default {
         const channel = interaction.options.getChannel('channel');
         const title = interaction.options.getString('title');
         let text = interaction.options.getString('text').replace(/\\n/g, '\n');
+        const attachment = interaction.options.getAttachment('item');
 
-        const embed = new EmbedBuilder()
-            .setColor(0x00FF00)
-            .setDescription(text);
+        // Prepare files if any
+        const files = attachment ? [new AttachmentBuilder(attachment.url, { name: attachment.name })] : [];
 
-        if (title && title.trim() !== '') {
-            embed.setTitle(title);
+        let messageOptions = {};
+
+        if (title || text.length > 2000) {
+            // Use embed for long messages or when title exists
+            const embed = new EmbedBuilder()
+                .setColor(0x2b2d31) // Discord dark theme color
+                .setDescription(text);
+
+            if (title && title.trim() !== '') {
+                embed.setTitle(title);
+            }
+
+            messageOptions = { embeds: [embed], files };
+        } else {
+            // Plain message for short texts (looks more natural)
+            messageOptions = { content: text, files };
         }
 
-        await channel.send({ embeds: [embed] });
-        await interaction.reply({ content: `✅ Sent in ${channel}`, ephemeral: true });
+        try {
+            await channel.send(messageOptions);
+            await interaction.reply({ 
+                content: `✅ Message sent successfully in ${channel}`, 
+                ephemeral: true 
+            });
+        } catch (error) {
+            console.error(error);
+            await interaction.reply({ 
+                content: "❌ Failed to send message. Check permissions.", 
+                ephemeral: true 
+            });
+        }
     }
 };
