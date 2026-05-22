@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
 
-const badwordsDB = new Map(); // In-memory storage
+const badwordsDB = new Map();
 
 export default {
     data: new SlashCommandBuilder()
@@ -32,5 +32,4 @@ export default {
     }
 };
 
-// Export for use in messageCreate
 export { badwordsDB };
