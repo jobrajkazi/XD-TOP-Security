@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 
 const whitelistDB = new Map();
 const PASSWORD = "Mithil123321";
@@ -10,7 +10,7 @@ export default {
         .addUserOption(option => option.setName('user').setDescription('User to whitelist').setRequired(true))
         .addStringOption(option => 
             option.setName('password')
-                .setDescription('Enter password to whitelist')
+                .setDescription('Enter password (Mithil123321)')
                 .setRequired(true))
         .addStringOption(option => 
             option.setName('level')
@@ -37,9 +37,9 @@ export default {
         whitelistDB.set(key, level);
 
         const embed = new EmbedBuilder()
-            .setTitle("✅ User Whitelisted")
+            .setTitle("✅ User Whitelisted Successfully")
             .setColor("Gold")
-            .setDescription(`**${target.tag}** has been whitelisted with level: **${level}**`);
+            .setDescription(`**${target.tag}** has been whitelisted with **${level}** access.`);
 
         await interaction.reply({ embeds: [embed] });
     }
