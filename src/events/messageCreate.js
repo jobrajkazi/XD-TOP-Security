@@ -49,7 +49,7 @@ async function punishUser(message, reason, threat) {
 
     // === DM to Punished User ===
     const dmEmbed = new EmbedBuilder()
-        .setTitle("⚠️ ERROR EXE OFFICIAL — AUTOMATED SECURITY WARNING")
+        .setTitle("⚠️ XD TOP OFFICIAL — AUTOMATED SECURITY WARNING")
         .setColor("Red")
         .setDescription(`Hello ${message.author},`)
         .addFields(
@@ -61,7 +61,7 @@ async function punishUser(message, reason, threat) {
             name: "━━━━━━━━━━━━━━",
             value: "**You have been punished for violating server rules.**\nOur system has **ZERO TOLERANCE**."
         })
-        .setFooter({ text: "— ERROR EXE OFFICIAL SECURITY SYSTEM" });
+        .setFooter({ text: "— XD TOP OFFICIAL SECURITY SYSTEM" });
 
     message.author.send({ embeds: [dmEmbed] }).catch(() => {});
 
@@ -74,7 +74,7 @@ async function punishUser(message, reason, threat) {
             
             if (staffUser) {
                 const staffEmbed = new EmbedBuilder()
-                    .setTitle("🚨 ERROR EXE OFFICIAL — STAFF ALERT")
+                    .setTitle("🚨 XD TOP OFFICIAL — STAFF ALERT")
                     .setColor("Orange")
                     .addFields(
                         { name: "👤 Punished User", value: `${message.author.tag} (${message.author.id})` },
@@ -83,7 +83,7 @@ async function punishUser(message, reason, threat) {
                         { name: "🤖 Action Taken", value: "Timeout (30 Minutes)" },
                         { name: "🕒 Time", value: `<t:${Math.floor(Date.now()/1000)}>` }
                     )
-                    .setFooter({ text: "Zero Tolerance Mode • ERROR EXE OFFICIAL" });
+                    .setFooter({ text: "Zero Tolerance Mode • XD TOP OFFICIAL" });
 
                 staffUser.send({ embeds: [staffEmbed] }).catch(() => {});
             }
