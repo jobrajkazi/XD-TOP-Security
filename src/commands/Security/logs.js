@@ -43,10 +43,10 @@ export default {
 
             const embed = new EmbedBuilder()
                 .setColor('Green')
-                .setTitle('📋 Logs Channel Setup Successful')
-                .setDescription(`**This channel** has been set as the **Real-time Security Logs** channel.\n\nThe bot will now send live updates here for all actions (bans, channel restores, deletions, etc.).`);
+                .setTitle('✅ Logs Channel Setup')
+                .setDescription(`This channel is now the **Real-time Security Logs** channel.`);
 
-            await interaction.reply({ embeds: [embed], ephemeral: false });
+            await interaction.reply({ embeds: [embed] });
         }
     }
 };
