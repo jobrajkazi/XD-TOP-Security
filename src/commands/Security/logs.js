@@ -14,7 +14,11 @@ function loadLogChannels() {
 }
 
 function saveLogChannels() {
-    fs.writeFileSync(logChannelFile, JSON.stringify(logChannels, null, 2));
+    try {
+        fs.writeFileSync(logChannelFile, JSON.stringify(logChannels, null, 2));
+    } catch (e) {
+        console.error("Failed to save log channels:", e);
+    }
 }
 
 loadLogChannels();
@@ -24,24 +28,25 @@ export { logChannels, saveLogChannels };
 export default {
     data: new SlashCommandBuilder()
         .setName('logs')
-        .setDescription('Setup real-time security logs channel')
+        .setDescription('Setup real-time security logs')
         .addSubcommand(sub =>
             sub.setName('setup')
-                .setDescription('Set this channel as logs channel')
+                .setDescription('Set current channel as logs channel')
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
     async execute(interaction) {
         if (interaction.options.getSubcommand() === 'setup') {
-            logChannels[interaction.guild.id] = interaction.channel.id;
+            const guildId = interaction.guild.id;
+            logChannels[guildId] = interaction.channel.id;
             saveLogChannels();
 
             const embed = new EmbedBuilder()
-                .setColor('Blue')
-                .setTitle('📋 Logs Channel Set')
-                .setDescription(`This channel (${interaction.channel}) will now receive **real-time bot actions**.`);
+                .setColor('Green')
+                .setTitle('📋 Logs Channel Setup Successful')
+                .setDescription(`**This channel** has been set as the **Real-time Security Logs** channel.\n\nThe bot will now send live updates here for all actions (bans, channel restores, deletions, etc.).`);
 
-            await interaction.reply({ embeds: [embed] });
+            await interaction.reply({ embeds: [embed], ephemeral: false });
         }
     }
 };
