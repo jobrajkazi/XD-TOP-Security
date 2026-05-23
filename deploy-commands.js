@@ -15,10 +15,9 @@ for (const folder of commandFolders) {
 
     for (const file of commandFiles) {
         const filePath = path.join(folderPath, file);
-        const command = await import(`file://${filePath}`);
-
-        if ('data' in command.default) {
-            commands.push(command.default.data.toJSON());
+        const commandModule = await import(`file://${filePath}`);
+        if (commandModule.default?.data) {
+            commands.push(commandModule.default.data.toJSON());
         }
     }
 }
@@ -27,15 +26,13 @@ const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
 (async () => {
     try {
-        console.log(`🔄 Started refreshing ${commands.length} application (/) commands.`);
-
+        console.log(`🔄 Deploying ${commands.length} commands...`);
         const data = await rest.put(
             Routes.applicationCommands(process.env.CLIENT_ID),
             { body: commands }
         );
-
-        console.log(`✅ Successfully reloaded ${data.length} application (/) commands.`);
+        console.log(`✅ Successfully deployed ${data.length} commands!`);
     } catch (error) {
-        console.error('❌ Error deploying commands:', error);
+        console.error('❌ Failed to deploy commands:', error);
     }
 })();
