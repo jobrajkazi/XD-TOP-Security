@@ -15,9 +15,13 @@ for (const folder of commandFolders) {
 
     for (const file of commandFiles) {
         const filePath = path.join(folderPath, file);
-        const commandModule = await import(`file://${filePath}`);
-        if (commandModule.default?.data) {
-            commands.push(commandModule.default.data.toJSON());
+        try {
+            const command = await import(`file://${filePath}`);
+            if (command.default?.data) {
+                commands.push(command.default.data.toJSON());
+            }
+        } catch (err) {
+            console.error(`Error loading ${file}:`, err.message);
         }
     }
 }
@@ -26,13 +30,15 @@ const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
 (async () => {
     try {
-        console.log(`🔄 Deploying ${commands.length} commands...`);
-        const data = await rest.put(
+        console.log(`🔄 Started refreshing ${commands.length} slash commands...`);
+        
+        await rest.put(
             Routes.applicationCommands(process.env.CLIENT_ID),
             { body: commands }
         );
-        console.log(`✅ Successfully deployed ${data.length} commands!`);
+
+        console.log(`✅ Successfully deployed ${commands.length} commands!`);
     } catch (error) {
-        console.error('❌ Failed to deploy commands:', error);
+        console.error('❌ Error deploying commands:', error);
     }
 })();
